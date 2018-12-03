@@ -54,11 +54,8 @@ def topics2ids(topics):
 
 def get_lables():
     """获取训练集所有样本的标签。注意之前在处理数据时丢弃了部分没有 title 的样本。"""
-    df_question_topic = pd.read_csv('../raw_data/question_topic_train_set.txt', sep='\t',
+    df_question_topic = pd.read_csv('../raw_data/question_knowledge_train_set.txt', sep='\t',
                                     names=['questions', 'topics'], dtype={'questions': object, 'topics': object})
-    na_title_indexs = [328877, 422123, 633584, 768738, 818616, 876828, 1273673, 1527297,
-                       1636237, 1682969, 2052477, 2628516, 2657464, 2904162, 2993517]
-    df_question_topic = df_question_topic.drop(na_title_indexs)
     p = Pool()
     y = list(p.map(topics2ids, df_question_topic.topics.values))
     p.close()
@@ -68,15 +65,15 @@ def get_lables():
 
 # word 数据打包
 def wd_train_get_batch(title_len=30, content_len=150, batch_size=128):
-    print('loading word train_title and train_content.')
-    train_title = np.load('../data/wd_train_title.npy')
+    print('loading word train_content.')
     train_content = np.load('../data/wd_train_content.npy')
     p = Pool()
-    X_title = np.asarray(list(p.map(pad_X30, train_title)))
+    #X_title = np.asarray(list(p.map(pad_X30, train_title)))
     X_content = np.asarray(list(p.map(pad_X150, train_content)))
     p.close()
     p.join()
-    X = np.hstack([X_title, X_content])
+    #X = np.hstack([X_title, X_content])
+    X = X_content
     print('getting labels, this should cost minutes, please wait.')
     y = get_lables()
     print('y.shape=', y.shape)
@@ -84,7 +81,7 @@ def wd_train_get_batch(title_len=30, content_len=150, batch_size=128):
     # 划分验证集
     sample_num = X.shape[0]
     np.random.seed(13)
-    valid_num = 100000
+    valid_num = 1000
     new_index = np.random.permutation(sample_num)
     X = X[new_index]
     y = y[new_index]
@@ -95,10 +92,12 @@ def wd_train_get_batch(title_len=30, content_len=150, batch_size=128):
     print('X_train.shape=', X_train.shape, 'y_train.shape=', y_train.shape)
     print('X_valid.shape=', X_valid.shape, 'y_valid.shape=', y_valid.shape)
     print('creating batch data.')
+    
     # 验证集打batch
     sample_num = len(X_valid)
     print('valid_sample_num=%d' % sample_num)
     train_batch(X_valid, y_valid, wd_valid_path, batch_size)
+    
     # 训练集打batch
     sample_num = len(X_train)
     print('train_sample_num=%d' % sample_num)
@@ -121,4 +120,4 @@ def wd_test_get_batch(title_len=30, content_len=150, batch_size=128):
 
 if __name__ == '__main__':
     wd_train_get_batch()
-    wd_test_get_batch()
+    #wd_test_get_batch()
