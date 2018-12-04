@@ -107,7 +107,7 @@ def main(_):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
-        model = network.BiGRU_CNN(W_embedding, settings)
+        model = network.TextCNN(W_embedding, settings)
         model.saver.restore(sess, tf.train.latest_checkpoint(ckpt_path))
         print('Local predicting...')
         local_predict(sess, model)

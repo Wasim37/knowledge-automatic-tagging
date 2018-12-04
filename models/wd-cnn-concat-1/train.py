@@ -17,22 +17,23 @@ from evaluator import score_eval
 
 flags = tf.flags
 flags.DEFINE_bool('is_retrain', False, 'if is_retrain is true, not rebuild the summary')
-flags.DEFINE_integer('max_epoch', 1, 'update the embedding after max_epoch, default: 1')
+flags.DEFINE_integer('max_epoch', 10000, 'update the embedding after max_epoch, default: 1')
 flags.DEFINE_integer('max_max_epoch', 6, 'all training epoches, default: 6')
-flags.DEFINE_float('lr', 8e-4, 'initial learning rate, default: 8e-4')
-flags.DEFINE_float('decay_rate', 0.75, 'decay rate, default: 0.75')
+flags.DEFINE_float('lr', 1e-3, 'initial learning rate, default: 1e-3')
+flags.DEFINE_float('decay_rate', 0.65, 'decay rate, default: 0.65')
 flags.DEFINE_float('keep_prob', 0.5, 'keep_prob for training, default: 0.5')
+
 # 正式
-# flags.DEFINE_integer('decay_step', 15000, 'decay_step, default: 15000')
-# flags.DEFINE_integer('valid_step', 10000, 'valid_step, default: 10000')
-# flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
+#flags.DEFINE_integer('decay_step', 15000, 'decay_step, default: 15000')
+#flags.DEFINE_integer('valid_step', 10000, 'valid_step, default: 10000')
+#flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
 
 # 测试
 flags.DEFINE_integer('decay_step', 1000, 'decay_step, default: 1000')
-flags.DEFINE_integer('valid_step', 500, 'valid_step, default: 500')
-flags.DEFINE_float('last_f1', 0.10, 'if valid_f1 > last_f1, save new model. default: 0.10')
-FLAGS = flags.FLAGS
+flags.DEFINE_integer('valid_step', 1000, 'valid_step, default: 500')
+flags.DEFINE_float('last_f1', 0.010, 'if valid_f1 > last_f1, save new model. default: 0.0010')
 
+FLAGS = flags.FLAGS
 lr = FLAGS.lr
 last_f1 = FLAGS.last_f1
 settings = network.Settings()
@@ -49,9 +50,10 @@ va_batches = os.listdir(data_valid_path)
 n_tr_batches = len(tr_batches)
 n_va_batches = len(va_batches)
 
+
 # 测试
-#n_tr_batches = 1000
-#n_va_batches = 50
+# n_tr_batches = 1000
+# n_va_batches = 50
 
 
 def get_batch(data_path, batch_id):
@@ -105,6 +107,7 @@ def train_epoch(data_path, sess, model, train_fetches, valid_fetches, train_writ
                 last_f1 = f1
                 saving_path = model.saver.save(sess, model_path, global_step+1)
                 print('saved new model to %s ' % saving_path)
+                
         # training
         batch_id = batch_indexs[batch]
         [X1_batch, X2_batch, y_batch] = get_batch(data_train_path, batch_id)
@@ -113,6 +116,7 @@ def train_epoch(data_path, sess, model, train_fetches, valid_fetches, train_writ
         feed_dict = {model.X1_inputs: X1_batch, model.X2_inputs: X2_batch, model.y_inputs: y_batch,
                      model.batch_size: _batch_size, model.tst: False, model.keep_prob: FLAGS.keep_prob}
         summary, _cost, _, _ = sess.run(train_fetches, feed_dict)  # the cost is the mean cost of one batch
+        
         # valid per 500 steps
         if 0 == (global_step + 1) % 500:
             train_writer.add_summary(summary, global_step)
@@ -139,17 +143,20 @@ def main(_):
     if not os.path.exists(summary_path):
         os.makedirs(summary_path)
 
-    print('1.Loading data...')
-    W_embedding = np.load(embedding_path)
+    print('1.Loading data.........')
+    time0 = time.time()
+    W_embedding = np.load(embedding_path) # shape (411722, 256)
     print('training sample_num = %d' % n_tr_batches)
     print('valid sample_num = %d' % n_va_batches)
+    print('time=%g s' % (time.time() - time0))
 
     # Initial or restore the model
-    print('2.Building model...')
+    print('2.Initial or restore the model......')
+    time0 = time.time()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
-        model = network.BiGRU_CNN(W_embedding, settings)
+        model = network.TextCNN(W_embedding, settings)
         with tf.variable_scope('training_ops') as vs:
             learning_rate = tf.train.exponential_decay(FLAGS.lr, model.global_step, FLAGS.decay_step,
                                                    FLAGS.decay_rate, staircase=True)
@@ -166,6 +173,7 @@ def main(_):
                 optimizer2 = tf.train.AdamOptimizer(learning_rate=learning_rate)
                 train_op2 = optimizer2.apply_gradients(zip(grads2, tvars2),
                                                    global_step=model.global_step)
+
             update_op = tf.group(*model.update_emas)
             merged = tf.summary.merge_all()  # summary
             train_writer = tf.summary.FileWriter(summary_path + 'train', sess.graph)
@@ -183,18 +191,25 @@ def main(_):
         else:
             print('Initializing Variables...')
             sess.run(tf.global_variables_initializer())
+        print('time=%g s' % (time.time() - time0))
 
-        print('3.Begin training...')
+        print('3.Begin training......')
         print('max_epoch=%d, max_max_epoch=%d' % (FLAGS.max_epoch, FLAGS.max_max_epoch))
-        train_op = train_op1
+        train_op = train_op2
         for epoch in range(FLAGS.max_max_epoch):
             global_step = sess.run(model.global_step)
             print('Global step %d, lr=%g' % (global_step, sess.run(learning_rate)))
             if epoch == FLAGS.max_epoch:  # update the embedding
                 train_op = train_op1
+
             train_fetches = [merged, model.loss, train_op, update_op]
             valid_fetches = [merged, model.loss]
             train_epoch(data_train_path, sess, model, train_fetches, valid_fetches, train_writer, test_writer)
+            
+            valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
+            print('Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g' % (
+                sess.run(model.global_step), valid_cost, precision, recall, f1))            
+            
         # 最后再做一次验证
         valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
         print('END.Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g' % (

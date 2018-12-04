@@ -3,7 +3,6 @@
 
 ## 1. 环境依赖
 
->>>>>>> .theirs
 |环境/库|版本|
 |:---------:|----------|
 |conda|4.5.4|
@@ -30,7 +29,7 @@
 |　　|　　|　　|- predict.py　　　　  # 验证集/测试集预测，生成概率矩阵<br/>
 ...<br/>
 |　　|- ckpt　　　　　　　　　　　     # 保存训练好的模型<br/>
-|　　|- summary　　　　　　　　　   # tensorboard数据<br/>
+|　　|- summary　　　　　　　　　   # tensorboard 数据<br/>
 |　　|- data_helpers.py　　　　　　   # 数据处理函数<br/>
 
 

@@ -138,6 +138,18 @@ def pad_X150(words, max_len=150):
         return words[:max_len]
     return np.hstack([words, np.zeros(max_len-words_len, dtype=int)])
 
+
+def pad_X180(words, max_len=180):
+    """把 word_ids 整理成固定长度。
+    """
+    words_len = len(words)
+    words = np.asarray(words)
+    if words_len == max_len:
+        return words
+    if words_len > max_len:
+        return words[:max_len]
+    return np.hstack([words, np.zeros(max_len-words_len, dtype=int)])
+
 def pad_X300(words, max_len=300):
     """把 word_ids 整理成固定长度。
     """
