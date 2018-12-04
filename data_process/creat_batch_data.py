@@ -13,16 +13,15 @@ import os
 sys.path.append('../')
 from data_helpers import pad_X30
 from data_helpers import pad_X150
+from data_helpers import pad_X180
 from data_helpers import pad_X52
 from data_helpers import pad_X300
 from data_helpers import train_batch
 from data_helpers import eval_batch
 
-""" 把所有的数据按照 batch_size(128) 进行打包。取 10万 样本作为验证集。
-word_title_len = 30.
-word_content_len = 150.
-char_title_len = 52.
-char_content_len = 300.
+""" 
+把所有的数据按照 batch_size(128) 进行打包。
+word_content_len = 180.
 """
 
 
@@ -37,6 +36,7 @@ paths = [wd_train_path, wd_valid_path, wd_test_path,
 for each in paths:
     if not os.path.exists(each):
         os.makedirs(each)
+        
 
 with open('../data/sr_topic2id.pkl', 'rb') as inp:
     sr_topic2id = pickle.load(inp)
@@ -48,12 +48,11 @@ for i in range(len(sr_topic2id)):
 def topics2ids(topics):
     """把 chars 转为 对应的 id"""
     topics = topics.split(',')
-    ids = list(map(lambda topic: dict_topic2id[topic], topics))         # 获取id
+    ids = list(map(lambda topic: dict_topic2id[topic], topics))  # 获取id
     return ids
 
 
 def get_lables():
-    """获取训练集所有样本的标签。注意之前在处理数据时丢弃了部分没有 title 的样本。"""
     df_question_topic = pd.read_csv('../raw_data/question_knowledge_train_set.txt', sep='\t',
                                     names=['questions', 'topics'], dtype={'questions': object, 'topics': object})
     p = Pool()
@@ -69,7 +68,7 @@ def wd_train_get_batch(title_len=30, content_len=150, batch_size=128):
     train_content = np.load('../data/wd_train_content.npy')
     p = Pool()
     #X_title = np.asarray(list(p.map(pad_X30, train_title)))
-    X_content = np.asarray(list(p.map(pad_X150, train_content)))
+    X_content = np.asarray(list(p.map(pad_X180, train_content)))
     p.close()
     p.join()
     #X = np.hstack([X_title, X_content])

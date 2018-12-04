@@ -15,7 +15,7 @@ sys.path.append('../..')
 from data_helpers import to_categorical
 from evaluator import score_eval
 
-flags = tf.flags
+flags = tf.app.flags
 flags.DEFINE_bool('is_retrain', False, 'if is_retrain is true, not rebuild the summary')
 flags.DEFINE_integer('max_epoch', 10000, 'update the embedding after max_epoch, default: 1')
 flags.DEFINE_integer('max_max_epoch', 6, 'all training epoches, default: 6')

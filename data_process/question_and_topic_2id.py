@@ -20,12 +20,14 @@ def question_and_topic_2id():
     sr_question2id = pd.Series(range(len(questions)), index=questions) 
     sr_id2question = pd.Series(questions, index=range(len(questions)))
     
-    # knowledge 按照数量从大到小进行编号
+    
     df_question_topic.topics = df_question_topic.topics.apply(lambda tps: tps.split(','))    
     topics = df_question_topic.topics.values
-    topics = list(chain(*topics)) # 高效的迭代器chain http://funhacks.net/2017/02/13/itertools/
+    # 高效的迭代器chain http://funhacks.net/2017/02/13/itertools/
+    topics = list(chain(*topics)) 
     sr_topics = pd.Series(topics)
-    topics_count = sr_topics.value_counts() # 对Series里面的每个值进行计数并且排序
+    # knowledge 按照数量从大到小进行编号
+    topics_count = sr_topics.value_counts()
     topics = topics_count.index
     sr_topic2id = pd.Series(range(len(topics)),index=topics)
     sr_id2topic = pd.Series(topics, index=range(len(topics))) 
