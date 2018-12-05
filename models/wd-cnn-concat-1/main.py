@@ -8,14 +8,17 @@ from flask import jsonify
 from flask import Flask
 from flask import request
 
+
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 import os
 import sys
 import time
 import network
 import jieba
 import pickle
+import json
 
 sys.path.append('../../')
 from data_helpers import pad_X180
@@ -25,13 +28,6 @@ settings = network.Settings()
 title_len = settings.title_len
 model_name = settings.model_name
 ckpt_path = settings.ckpt_path
-
-local_scores_path = '../../local_scores/'
-scores_path = '../../scores/'
-if not os.path.exists(local_scores_path):
-    os.makedirs(local_scores_path)
-if not os.path.exists(scores_path):
-    os.makedirs(scores_path)
 
 embedding_path = '../../data/word_embedding.npy'
 data_valid_path = '../../data/wd-data/data_valid/'
@@ -55,8 +51,7 @@ save_path = '../../data/'
 with open(save_path + 'sr_topic2id.pkl', 'rb') as inp2:
     sr_topic2id = pickle.load(inp2)
     sr_id2topic = pickle.load(inp2)
-
-print("sss")
+    
 def get_id4words(words):
     """把 words 转为 对应的 id"""
     cut = jieba.cut(words.strip()) # jieba分词
@@ -98,6 +93,7 @@ def local_predict(sess, model, content):
 
 app = Flask(__name__)
 
+
 @app.route('/', methods=['POST','GET'])
 def get_text_input():
     content = request.args.get('title')
@@ -108,6 +104,7 @@ def get_text_input():
         print('there is not saved model, please check the ckpt path')
         exit()
     print('Loading model...')
+    dicts = {}
     W_embedding = np.load(embedding_path)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -116,15 +113,20 @@ def get_text_input():
         model.saver.restore(sess, tf.train.latest_checkpoint(ckpt_path))
         print('Local predicting...')
         predict_labels = local_predict(sess, model, content)
-        predict_labels = map(lambda label: label.argsort()[-1:-6:-1], predict_labels)
+        predict_labels_top5 = np.argsort(-predict_labels[0])[:5]
         predict_labels_list = list()
-        predict_labels_list.extend(predict_labels)
+        predict_labels_list.extend(predict_labels_top5)
         print(predict_labels_list)
-        topc_id = [sr_id2topic[x] for x in predict_labels_list]
-        print(topc_id)
-       
-    
-    return "as"
+        topic_id_list = [sr_id2topic[x] for x in predict_labels_list]
+        
+        # 加载知识点nodeId与name
+        df_train = pd.read_csv('../../raw_data/all_knowledge_set.txt', sep='\t', usecols=[0, 1],
+                                names=['topic_id', 'topic_name'], dtype={'topic_id': object})
+        dict_topic_id2name = dict(zip(df_train.topic_id, df_train.topic_name.values))
+        for topic_id in topic_id_list:
+            dicts[topic_id] = dict_topic_id2name[topic_id]
+
+    return jsonify(dicts)
 
 if __name__ == '__main__':
     app.config['JSON_AS_ASCII'] = False
