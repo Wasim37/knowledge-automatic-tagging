@@ -55,7 +55,7 @@ class TextCNN(object):
             self.embedding = tf.get_variable(name='embedding', shape=W_embedding.shape,
                                              initializer=tf.constant_initializer(W_embedding), trainable=True)
             endtime = time.time()
-            print('加载词向量耗时%d秒' % (endtime-starttime))  
+            print('初始化词向量耗时%d秒' % (endtime-starttime))   
             
         self.embedding_size = W_embedding.shape[1]
 

@@ -13,7 +13,6 @@ import os
 
 
 
-
 # 往词向量中添加特殊字符集
 SPECIAL_SYMBOL = ['<PAD>', '<EOS>']  
 
