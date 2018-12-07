@@ -84,7 +84,7 @@ def to_categorical(topics):
      >>> (10, 1999)
     """
     n_sample = len(topics)
-    y = np.zeros(shape=(n_sample, 1999))
+    y = np.zeros(shape=(n_sample, 1104))
     for i in range(n_sample):
         topic_index = topics[i]
         y[i, topic_index] = 1
