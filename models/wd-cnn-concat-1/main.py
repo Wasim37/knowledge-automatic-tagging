@@ -99,58 +99,58 @@ if not os.path.exists(ckpt_path + 'checkpoint'):
 
 
 #print('加载知识点节点id与名称......')
-#df_train = pd.read_csv('../../raw_data/all_knowledge_set.txt', sep='\t', usecols=[0, 1],
-                        #names=['topic_id', 'topic_name'], dtype={'topic_id': object})
-#dict_topic_id2name = dict(zip(df_train.topic_id, df_train.topic_name.values))
+df_train = pd.read_csv('../../raw_data/all_knowledge_set.txt', sep='\t', usecols=[0, 1],
+                        names=['topic_id', 'topic_name'], dtype={'topic_id': object})
+dict_topic_id2name = dict(zip(df_train.topic_id, df_train.topic_name.values))
 
 
-#print('加载词向量......')
-#W_embedding = np.load(embedding_path)
-#print('定义模型结构......')
-#model = network.TextCNN(W_embedding, settings)
-#config = tf.ConfigProto()
-#config.gpu_options.allow_growth = True
-#sess = tf.Session(config=config)
-#print('初始化模型参数......')
-#model.saver.restore(sess, tf.train.latest_checkpoint(ckpt_path))
+print('加载词向量......')
+W_embedding = np.load(embedding_path)
+print('定义模型结构......')
+model = network.TextCNN(W_embedding, settings)
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+print('初始化模型参数......')
+model.saver.restore(sess, tf.train.latest_checkpoint(ckpt_path))
 
 
 app = Flask(__name__)
 @app.route('/', methods=['POST','GET'])
 def get_text_input():
-    return "asas"
-    #content = request.args.get('title')
-    #if not content:   
-        #return '参数有误，正确格式 http://127.0.0.1:5002/?title=输入文本'
+    content = request.args.get('title')
+    if not content:   
+        return '参数有误，正确格式 http://127.0.0.1:5002/?title=输入文本'
     
-    #content = BeautifulSoup(content, "html.parser").text
-    #if len(content) < 10:
-        #return '文本去除公式图片等标签后，至少10个字符，请重新输入'
+    content = BeautifulSoup(content, "html.parser").text
+    if len(content) < 10:
+        return '文本去除公式图片等标签后，至少10个字符，请重新输入'
     
-    ## 预测得分
-    #predict_labels = local_predict(sess, model, content) 
+    # 预测得分
+    predict_labels = local_predict(sess, model, content) 
     
-    ## 计算置信度
-    #y_exp = [math.exp(i) for i in predict_labels[0]]  
-    #sum_y_exp = sum(y_exp)  
-    #softmax = [round(i / sum_y_exp, 3) for i in y_exp]
+    # 计算置信度
+    y_exp = [math.exp(i) for i in predict_labels[0]]  
+    sum_y_exp = sum(y_exp)  
+    softmax = [round(i / sum_y_exp, 3) for i in y_exp]
     
-    ## 排序获取得分最高的节点
-    #predict_labels_top = np.argsort(-predict_labels[0])[:10]
-    #predict_labels_list = list()
-    #predict_labels_list.extend(predict_labels_top)
-    #print(predict_labels_list)
+    # 排序获取得分最高的节点
+    predict_labels_top = np.argsort(-predict_labels[0])[:10]
+    predict_labels_list = list()
+    predict_labels_list.extend(predict_labels_top)
+    print(predict_labels_list)
     
-    ## 拼装知识节点对象并返回
-    #knowledge_info_list = []
-    #for lable in predict_labels_top:
-        #node_id = sr_id2topic[lable]
-        #node_name = dict_topic_id2name[node_id]
-        #score = softmax[lable]
-        #knowledge_info_list.append(knowledge_info(node_id, node_name, score))
-    #return json.dumps(knowledge_info_list, default=knowledge_info_2_json)
+    # 拼装知识节点对象并返回
+    knowledge_info_list = []
+    for lable in predict_labels_top:
+        node_id = sr_id2topic[lable]
+        node_name = dict_topic_id2name[node_id]
+        score = softmax[lable]
+        knowledge_info_list.append(knowledge_info(node_id, node_name, score))
+    return json.dumps(knowledge_info_list, default=knowledge_info_2_json)
 
 
 if __name__ == '__main__':
     app.config['JSON_AS_ASCII'] = False
-    app.run(host='0.0.0.0',port=5002)
+    app.run(host='127.0.0.1',port=5002)
+    #app.run()

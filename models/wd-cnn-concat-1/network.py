@@ -16,7 +16,7 @@ class Settings(object):
         self.filter_sizes = [2, 3, 4, 5, 7]
         self.n_filter = 256
         self.fc_hidden_size = 1024
-        self.n_class = 1999
+        self.n_class = 1104
         self.summary_path = '../../summary/' + self.model_name + '/'
         self.ckpt_path = '../../ckpt/' + self.model_name + '/'
 

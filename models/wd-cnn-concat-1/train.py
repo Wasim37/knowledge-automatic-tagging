@@ -11,14 +11,16 @@ import shutil
 import time
 import network
 
+
 sys.path.append('../..')
 from data_helpers import to_categorical
 from evaluator import score_eval
 
+
 flags = tf.app.flags
 flags.DEFINE_bool('is_retrain', False, 'if is_retrain is true, not rebuild the summary')
 flags.DEFINE_integer('max_epoch', 10000, 'update the embedding after max_epoch, default: 1')
-flags.DEFINE_integer('max_max_epoch', 6, 'all training epoches, default: 6')
+flags.DEFINE_integer('max_max_epoch', 30, 'all training epoches, default: 6')
 flags.DEFINE_float('lr', 1e-3, 'initial learning rate, default: 1e-3')
 flags.DEFINE_float('decay_rate', 0.65, 'decay rate, default: 0.65')
 flags.DEFINE_float('keep_prob', 0.5, 'keep_prob for training, default: 0.5')
@@ -29,14 +31,15 @@ flags.DEFINE_float('keep_prob', 0.5, 'keep_prob for training, default: 0.5')
 #flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
 
 # 测试
-flags.DEFINE_integer('decay_step', 1000, 'decay_step, default: 1000')
+flags.DEFINE_integer('decay_step', 1500, 'decay_step, default: 1000')
 flags.DEFINE_integer('valid_step', 1000, 'valid_step, default: 500')
-flags.DEFINE_float('last_f1', 0.010, 'if valid_f1 > last_f1, save new model. default: 0.0010')
+flags.DEFINE_float('last_f1', 0.200, 'if valid_f1 > last_f1, save new model. default: 0.0010')
 
 FLAGS = flags.FLAGS
 lr = FLAGS.lr
 last_f1 = FLAGS.last_f1
 settings = network.Settings()
+n_class = settings.n_class
 title_len = settings.title_len
 summary_path = settings.summary_path
 ckpt_path = settings.ckpt_path
@@ -103,6 +106,7 @@ def train_epoch(data_path, sess, model, train_fetches, valid_fetches, train_writ
             print('Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g, time=%g s' % (
                 global_step, valid_cost, precision, recall, f1, time.time() - time0))
             time0 = time.time()
+            print(last_f1)
             if f1 > last_f1:
                 last_f1 = f1
                 saving_path = model.saver.save(sess, model_path, global_step+1)
@@ -197,6 +201,7 @@ def main(_):
         print('max_epoch=%d, max_max_epoch=%d' % (FLAGS.max_epoch, FLAGS.max_max_epoch))
         train_op = train_op2
         for epoch in range(FLAGS.max_max_epoch):
+            print(epoch,"epoch......")
             global_step = sess.run(model.global_step)
             print('Global step %d, lr=%g' % (global_step, sess.run(learning_rate)))
             if epoch == FLAGS.max_epoch:  # update the embedding
